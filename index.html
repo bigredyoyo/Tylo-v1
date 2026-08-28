@@ -318,14 +318,14 @@
         <button class="color-btn" id="color1-btn">
           <span class="color-swatch" id="color1-swatch"></span>
           <span class="btn-label">canvas</span>
-          <span class="reset-x" id="color1-reset">×</span>
+          <span class="reset-x" id="color1-reset"><i class="ti ti-refresh"></i></span>
           <input type="color" class="hidden-picker" id="color1-input" value="#f2ede8">
         </button>
         <button class="color-btn" id="color2-btn">
           <span class="color-swatch" id="color2-swatch"></span>
           <span class="btn-label">shape</span>
-          <span class="reset-x" id="color2-reset">×</span>
-          <input type="color" class="hidden-picker" id="color2-input" value="#6A1616">
+          <span class="reset-x" id="color2-reset"><i class="ti ti-refresh"></i></span>
+          <input type="color" class="hidden-picker" id="color2-input" value="#837a72">
         </button>
       </div>
 
@@ -359,7 +359,7 @@
     ───────────────────────────────────────── */
     const TILE_SIZE  = 80;
     const DEFAULT_C1 = '#f2ede8';  // canvas
-    const DEFAULT_C2 = '#6A1616';  // shape
+    const DEFAULT_C2 = '#837a72';  // shape
 
     let color1 = DEFAULT_C1;
     let color2 = DEFAULT_C2;
@@ -407,6 +407,7 @@
         id: 'highway',
         label: 'highway',
         vb: '0 0 120 120',
+        defaultShape: 1, // curves f
         shapes: [
           // ends f
           (c1,c2) => `
@@ -590,7 +591,7 @@
     function createTile(col, row) {
       const key = `${col}_${row}`;
       if (!tileStates.has(key)) {
-        tileStates.set(key, { shapeIndex: 0, rotation: 0 });
+        tileStates.set(key, { shapeIndex: BOARDS[activeBoardIdx].defaultShape || 0, rotation: 0 });
       }
 
       const div = document.createElement('div');
