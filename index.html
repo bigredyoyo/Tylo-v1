@@ -234,7 +234,6 @@
     .action-btn .ti { font-size: 16px; opacity: 0.75; }
     .action-btn .btn-label { flex: 1; }
 
-    .kbd { background: rgba(255,255,255,0.12); border-radius: 3px; padding: 1px 5px; font-size: 11px; font-family: ui-monospace, monospace; opacity: 0.7; }
 
     .divider { height: 1px; background: rgba(255,255,255,0.1); margin: 2px -16px; }
 
@@ -271,7 +270,7 @@
     }
 
     .board-name {
-      font-size: 10px;
+      font-size: 12px;
       color: rgba(255,255,255,0.5);
       text-align: center;
       padding: 5px 4px 6px;
@@ -283,7 +282,7 @@
       padding: 10px 16px 20px;
       display: flex; flex-direction: column; gap: 1px; flex-shrink: 0;
     }
-    .sidebar-footer span { font-size: 10px; color: rgba(255,255,255,0.28); line-height: 1.7; }
+    .sidebar-footer span { font-size: 12px; color: rgba(255,255,255,0.28); line-height: 1.7; }
   </style>
 </head>
 <body>
@@ -319,21 +318,20 @@
         <button class="color-btn" id="color1-btn">
           <span class="color-swatch" id="color1-swatch"></span>
           <span class="btn-label">canvas</span>
-          <span class="reset-x" id="color1-reset">×</span>
+          <span class="reset-x" id="color1-reset"><i class="ti ti-refresh"></i></span>
           <input type="color" class="hidden-picker" id="color1-input" value="#f2ede8">
         </button>
         <button class="color-btn" id="color2-btn">
           <span class="color-swatch" id="color2-swatch"></span>
           <span class="btn-label">shape</span>
-          <span class="reset-x" id="color2-reset">×</span>
-          <input type="color" class="hidden-picker" id="color2-input" value="#6A1616">
+          <span class="reset-x" id="color2-reset"><i class="ti ti-refresh"></i></span>
+          <input type="color" class="hidden-picker" id="color2-input" value="#837a72">
         </button>
       </div>
 
       <button class="action-btn" id="shuffle-btn">
         <i class="ti ti-arrows-shuffle"></i>
         <span class="btn-label">shuffle tiles</span>
-        <span class="kbd">X</span>
       </button>
 
       <div class="divider"></div>
@@ -361,7 +359,7 @@
     ───────────────────────────────────────── */
     const TILE_SIZE  = 80;
     const DEFAULT_C1 = '#f2ede8';  // canvas
-    const DEFAULT_C2 = '#6A1616';  // shape
+    const DEFAULT_C2 = '#837a72';  // shape
 
     let color1 = DEFAULT_C1;
     let color2 = DEFAULT_C2;
@@ -409,6 +407,7 @@
         id: 'highway',
         label: 'highway',
         vb: '0 0 120 120',
+        defaultShape: 1, // curves f
         shapes: [
           // ends f
           (c1,c2) => `
@@ -592,7 +591,7 @@
     function createTile(col, row) {
       const key = `${col}_${row}`;
       if (!tileStates.has(key)) {
-        tileStates.set(key, { shapeIndex: 0, rotation: 0 });
+        tileStates.set(key, { shapeIndex: BOARDS[activeBoardIdx].defaultShape || 0, rotation: 0 });
       }
 
       const div = document.createElement('div');
