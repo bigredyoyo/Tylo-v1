@@ -632,26 +632,12 @@
           cancelPress();
           const state = tileStates.get(key);
           const visual = div.querySelector('.tile-visual');
-          // Keep incrementing past 270→360 instead of wrapping to 0, so the
-          // tile always spins forward; once the animation lands on 360 we
-          // silently reset to the equivalent 0 with no transition.
+          // Never wrap back to 0 — keep incrementing indefinitely so the
+          // tile always spins forward. Unbounded rotation degrees cost
+          // nothing extra to render (rotate() is periodic) and a JS number
+          // has more than enough precision for a lifetime of tapping.
           state.rotation += 90;
           visual.style.transform = `rotate(${state.rotation}deg)`;
-          if (state.rotation % 360 === 0) {
-            let resetDone = false;
-            const resetSpin = () => {
-              if (resetDone) return;
-              resetDone = true;
-              visual.removeEventListener('transitionend', resetSpin);
-              visual.style.transition = 'none';
-              state.rotation = 0;
-              visual.style.transform = 'rotate(0deg)';
-              void visual.offsetWidth; // force reflow before re-enabling transition
-              visual.style.transition = TILE_TRANSITION;
-            };
-            visual.addEventListener('transitionend', resetSpin, { once: true });
-            setTimeout(resetSpin, 300); // fallback in case transitionend doesn't fire (e.g. reduced motion)
-          }
         }
       });
 
