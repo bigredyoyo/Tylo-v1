@@ -358,6 +358,7 @@
        CONSTANTS & STATE
     ───────────────────────────────────────── */
     const TILE_SIZE  = 80;
+    const TILE_TRANSITION = 'transform 0.25s cubic-bezier(0.4,0,0.2,1)';
     const DEFAULT_C1 = '#f2ede8';  // canvas
     const DEFAULT_C2 = '#837a72';  // shape
 
@@ -514,7 +515,7 @@
     function buildSVG(shapeIndex, rotation, clipId, boardIdx) {
       const b = BOARDS[boardIdx !== undefined ? boardIdx : activeBoardIdx];
       const content = b.shapes[shapeIndex](color1, color2);
-      const sizeStyle = `width:80px;height:80px;transform:rotate(${rotation}deg);transform-origin:40px 40px;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);will-change:transform;`;
+      const sizeStyle = `width:80px;height:80px;transform:rotate(${rotation}deg);transform-origin:40px 40px;transition:${TILE_TRANSITION};will-change:transform;`;
       return wrapShapeMarkup(content, b.vb, clipId, sizeStyle);
     }
 
@@ -630,8 +631,27 @@
         if (pressTimer) {
           cancelPress();
           const state = tileStates.get(key);
-          state.rotation = (state.rotation + 90) % 360;
-          div.querySelector('.tile-visual').style.transform = `rotate(${state.rotation}deg)`;
+          const visual = div.querySelector('.tile-visual');
+          // Keep incrementing past 270→360 instead of wrapping to 0, so the
+          // tile always spins forward; once the animation lands on 360 we
+          // silently reset to the equivalent 0 with no transition.
+          state.rotation += 90;
+          visual.style.transform = `rotate(${state.rotation}deg)`;
+          if (state.rotation % 360 === 0) {
+            let resetDone = false;
+            const resetSpin = () => {
+              if (resetDone) return;
+              resetDone = true;
+              visual.removeEventListener('transitionend', resetSpin);
+              visual.style.transition = 'none';
+              state.rotation = 0;
+              visual.style.transform = 'rotate(0deg)';
+              void visual.offsetWidth; // force reflow before re-enabling transition
+              visual.style.transition = TILE_TRANSITION;
+            };
+            visual.addEventListener('transitionend', resetSpin, { once: true });
+            setTimeout(resetSpin, 300); // fallback in case transitionend doesn't fire (e.g. reduced motion)
+          }
         }
       });
 
