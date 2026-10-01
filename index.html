@@ -384,8 +384,14 @@
     function hwRect(x, y, w, h, rx, transform) {
       return (fill, stroke) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ''}${transform ? ` transform="${transform}"` : ''} fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="3"` : ''}/>`;
     }
-    function hwPath(d) {
-      return (fill, stroke) => `<path fill-rule="evenodd" clip-rule="evenodd" d="${d}" fill="${fill}"${stroke ? ` stroke="${stroke}" stroke-width="3"` : ''}/>`;
+    // Rings (r 10→110) are stroked <circle>s rather than Bézier <path>s:
+    // Chrome's GPU rasterizer draws circles with analytic anti-aliasing but
+    // complex paths with 4x MSAA, which looks stair-stepped on 1x displays.
+    // Every border is drawn before every fill so overlapping rings merge.
+    function hwRings(...centers) {
+      const ring = (paint, width) => centers.map(([cx, cy]) =>
+        `<circle cx="${cx}" cy="${cy}" r="60" stroke="${paint}" stroke-width="${width}"/>`).join('');
+      return (fill, stroke) => stroke ? ring(stroke, 103) + ring(fill, 97) : ring(fill, 100);
     }
 
     /* ─────────────────────────────────────────
@@ -398,24 +404,27 @@
         vb: '0 0 120 120',
         shapes: [
           // curves
+          // Curves are <circle>s, not Bézier <path>s, so Chrome anti-aliases
+          // them smoothly on 1x displays (see hwRings).
           (c1,c2) => `
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M0 40C44.1828 40 80 75.8172 80 120C80 164.183 44.1828 200 0 200C-44.1828 200 -80 164.183 -80 120C-80 75.8172 -44.1828 40 0 40ZM0 80C-22.0914 80 -40 97.9086 -40 120C-40 142.091 -22.0914 160 0 160C22.0914 160 40 142.091 40 120C40 97.9086 22.0914 80 0 80Z" fill="${c2}"/>
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M120 -80C164.183 -80 200 -44.1828 200 0C200 44.1828 164.183 80 120 80C75.8172 80 40 44.1828 40 0C40 -44.1828 75.8172 -80 120 -80ZM120 -40C97.9086 -40 80 -22.0914 80 0C80 22.0914 97.9086 40 120 40C142.091 40 160 22.0914 160 0C160 -22.0914 142.091 -40 120 -40Z" fill="${c2}"/>`,
+            <circle cx="0" cy="120" r="60" stroke="${c2}" stroke-width="40"/>
+            <circle cx="120" cy="0" r="60" stroke="${c2}" stroke-width="40"/>`,
           // straight
           (c1,c2) => `
             <path d="M40 0H80V120H40V0Z" fill="${c2}"/>
-            <path d="M100 60C100 48.9543 108.954 40 120 40C131.046 40 140 48.9543 140 60C140 71.0457 131.046 80 120 80C108.954 80 100 71.0457 100 60Z" fill="${c2}"/>
-            <path d="M-20 60C-20 48.9543 -11.0457 40 0 40C11.0457 40 20 48.9543 20 60C20 71.0457 11.0457 80 0 80C-11.0457 80 -20 71.0457 -20 60Z" fill="${c2}"/>`,
+            <circle cx="120" cy="60" r="20" fill="${c2}"/>
+            <circle cx="0" cy="60" r="20" fill="${c2}"/>`,
           // ends
           (c1,c2) => `
-            <path d="M100 60C100 48.9543 108.954 40 120 40C131.046 40 140 48.9543 140 60C140 71.0457 131.046 80 120 80C108.954 80 100 71.0457 100 60Z" fill="${c2}"/>
-            <path d="M60 100C71.0457 100 80 108.954 80 120C80 131.046 71.0457 140 60 140C48.9543 140 40 131.046 40 120C40 108.954 48.9543 100 60 100Z" fill="${c2}"/>
-            <path d="M-20 60C-20 48.9543 -11.0457 40 0 40C11.0457 40 20 48.9543 20 60C20 71.0457 11.0457 80 0 80C-11.0457 80 -20 71.0457 -20 60Z" fill="${c2}"/>
-            <path d="M60 -20C71.0457 -20 80 -11.0457 80 0C80 11.0457 71.0457 20 60 20C48.9543 20 40 11.0457 40 0C40 -11.0457 48.9543 -20 60 -20Z" fill="${c2}"/>`,
+            <circle cx="120" cy="60" r="20" fill="${c2}"/>
+            <circle cx="60" cy="120" r="20" fill="${c2}"/>
+            <circle cx="0" cy="60" r="20" fill="${c2}"/>
+            <circle cx="60" cy="0" r="20" fill="${c2}"/>`,
           // 3-way
           (c1,c2) => `
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M0 -80C44.1828 -80 80 -44.1828 80 0C80 23.8945 69.5233 45.3411 52.9141 60C69.5233 74.6589 80 96.1055 80 120C80 164.183 44.1828 200 0 200C-44.1828 200 -80 164.183 -80 120C-80 96.1058 -69.5239 74.6589 -52.915 60C-69.5239 45.3411 -80 23.8942 -80 0C-80 -44.1828 -44.1828 -80 0 -80ZM0 80C-22.0914 80 -40 97.9086 -40 120C-40 142.091 -22.0914 160 0 160C22.0914 160 40 142.091 40 120C40 97.9086 22.0914 80 0 80ZM0 -40C-22.0914 -40 -40 -22.0914 -40 0C-40 22.0914 -22.0914 40 0 40C22.0914 40 40 22.0914 40 0C40 -22.0914 22.0914 -40 0 -40Z" fill="${c2}"/>
-            <path d="M100 60C100 48.9543 108.954 40 120 40C131.046 40 140 48.9543 140 60C140 71.0457 131.046 80 120 80C108.954 80 100 71.0457 100 60Z" fill="${c2}"/>`,
+            <circle cx="0" cy="0" r="60" stroke="${c2}" stroke-width="40"/>
+            <circle cx="0" cy="120" r="60" stroke="${c2}" stroke-width="40"/>
+            <circle cx="120" cy="60" r="20" fill="${c2}"/>`,
         ]
       },
       {
@@ -431,12 +440,12 @@
             hwPiece(hwRect(10, 69, 100, 110, 50), c1, c2),
           // curves f
           (c1,c2) =>
-            hwPiece(hwPath('M120 -110C180.751 -110 230 -60.7513 230 0C230 60.7513 180.751 110 120 110C59.2487 110 10 60.7513 10 0C10 -60.7513 59.2487 -110 120 -110ZM120 -10C114.477 -10 110 -5.52285 110 0C110 5.52285 114.477 10 120 10C125.523 10 130 5.52285 130 0C130 -5.52285 125.523 -10 120 -10Z'), c1, c2) +
-            hwPiece(hwPath('M0 10C60.7513 10 110 59.2487 110 120C110 180.751 60.7513 230 0 230C-60.7513 230 -110 180.751 -110 120C-110 59.2487 -60.7513 10 0 10ZM0 110C-5.52285 110 -10 114.477 -10 120C-10 125.523 -5.52285 130 0 130C5.52285 130 10 125.523 10 120C10 114.477 5.52285 110 0 110Z'), c1, c2),
+            hwPiece(hwRings([120, 0]), c1, c2) +
+            hwPiece(hwRings([0, 120]), c1, c2),
           // 3-way f
           (c1,c2) =>
             hwPiece(hwRect(10, -9, 100, 138, null, 'rotate(90 60 60)'), c1, c2) +
-            hwPiece(hwPath('M120 -110C180.751 -110 230 -60.7513 230 0C230 22.1363 223.459 42.7442 212.208 60C223.459 77.2558 230 97.8637 230 120C230 180.751 180.751 230 120 230C59.2487 230 10 180.751 10 120C10 97.8639 16.5398 77.2557 27.791 60C16.5398 42.7443 10 22.1361 10 0C10 -60.7513 59.2487 -110 120 -110ZM120 110C114.477 110 110 114.477 110 120C110 125.523 114.477 130 120 130C125.523 130 130 125.523 130 120C130 114.477 125.523 110 120 110ZM120 -10C114.477 -10 110 -5.52285 110 0C110 5.52285 114.477 10 120 10C125.523 10 130 5.52285 130 0C130 -5.52285 125.523 -10 120 -10Z'), c1, c2),
+            hwPiece(hwRings([120, 0], [120, 120]), c1, c2),
           // straight f
           (c1,c2) =>
             hwPiece(hwRect(10, -9, 100, 138), c1, c2) +
@@ -451,11 +460,11 @@
           // shape 1 — corner c2 on c1
           (c1,c2) => `
             <rect width="66" height="66" fill="${c1}"/>
-            <path d="M66 0V66C29.5492 66 0 36.4508 0 0H66Z" fill="${c2}"/>`,
+            <circle cx="66" cy="0" r="66" fill="${c2}"/>`,
           // shape 2 — corner c1 on c2 (inverted)
           (c1,c2) => `
             <rect width="66" height="66" fill="${c2}"/>
-            <path d="M66 0V66C29.5492 66 0 36.4508 0 0H66Z" fill="${c1}"/>`,
+            <circle cx="66" cy="0" r="66" fill="${c1}"/>`,
           // solid canvas
           (c1,c2) => `<rect width="66" height="66" fill="${c1}"/>`,
           // solid shape
