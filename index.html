@@ -18,10 +18,14 @@
     }
 
     /* ── GRID ── */
+    /* Fixed + clipped so overflowing edge tiles never widen the page —
+       otherwise iOS Safari shrinks the page to fit, tile edges land on
+       fractional pixels, and hairline seams appear between tiles. */
     #grid {
       display: grid;
-      width: 100vw;
-      height: 100vh;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
     }
 
     .tile {
