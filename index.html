@@ -37,6 +37,7 @@
       overflow: hidden;
       touch-action: none;
       position: relative;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .tile::after {
@@ -48,8 +49,18 @@
       pointer-events: none;
     }
 
-    .tile:hover::after {
-      background: rgba(255, 255, 255, 0.2);
+    /* Hover only on devices with a real pointer; touch browsers keep :hover
+       stuck on the last-tapped tile, so they get a brief :active flash instead */
+    @media (hover: hover) and (pointer: fine) {
+      .tile:hover::after {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    @media (hover: none) {
+      .tile:active::after {
+        background: rgba(255, 255, 255, 0.2);
+      }
     }
 
     .tile svg {
@@ -137,7 +148,9 @@
       pointer-events: none;
     }
 
-    .swap-opt:hover::after  { box-shadow: inset 0 0 0 2.5px rgba(255,255,255,0.65); }
+    @media (hover: hover) and (pointer: fine) {
+      .swap-opt:hover::after  { box-shadow: inset 0 0 0 2.5px rgba(255,255,255,0.65); }
+    }
     .swap-opt.current::after { box-shadow: inset 0 0 0 2.5px #fff; }
 
     /* ── MENU TOGGLE ── */
